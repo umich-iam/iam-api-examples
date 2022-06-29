@@ -211,7 +211,6 @@ class Groups:
 
     # DELETE /groups/{group_cn}/
     def delete_group_cn(self):
-        # TODO: owner?
         url = f'{self.base_url}/{self.group_cn}/'
         r = requests.delete(url=url)
         return json.dumps(r.json(), indent=4)
