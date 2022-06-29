@@ -5,6 +5,7 @@ import requests
 # api_url = 'https://mcommunity-api-dev.dsc.umich.edu'  # TODO: update as needed
 api_url = 'http://localhost:8000'
 
+
 class Authorize:
     _access_token = None
     _refresh_token = None
@@ -104,6 +105,81 @@ class People:
         url = f'{self.base_url}/{self.uniqname}/vcard/'
         auth_header = Authorize.get_auth_header()
         r = requests.get(url=url, headers=auth_header)
+        return json.dumps(r.json(), indent=4)
+
+
+class Groups:
+    base_url = f'{api_url}/groups'
+    uniqname = 'jbensen'
+    user_dn = f'uid={uniqname},ou=People,dc=umich,dc=edu'
+    group_cn = 'this is my fun-fun-fun group'
+
+    # POST /groups/
+    # Create a new Group
+    def create_groups(self):
+        url = f'{self.base_url}/'
+        data = {
+            "cn": "this is my fun-fun-fun group",
+            "umichGroupEmail": "funfunfun",
+            "owner": [
+                "uid=jbensen,ou=People,dc=umich,dc=edu",
+                "uid=bjensen,ou=People,dc=umich,dc=edu"
+            ],
+            "umichDescription": "This describes the fun of this group"
+        }
+        r = requests.post(url=url, json=data)
+        return json.dumps(r.json(), indent=4)
+
+    # GET /groups/{group_cn}/
+    def get_groups_cn(self):
+        url = f'{self.base_url}/{self.group_cn}/'
+        r = requests.get(url=url)
+        return json.dumps(r.json(), indent=4)
+
+    # DELETE /groups/{group_cn}/
+    def delete_group_cn(self):
+        # TODO: owner?
+        url = f'{self.base_url}/{self.group_cn}/'
+        r = requests.delete(url=url)
+        return json.dumps(r.json(), indent=4)
+
+    # PATCH /groups/{group_cn}/
+    def patch_group_cn(self):
+        url = f'{self.base_url}/{self.group_cn}/'
+        data = {
+            "umichDescription": "This is a new description",
+            "joinable": True
+        }
+        r = requests.patch(url=url, json=data)
+        return json.dumps(r.json(), indent=4)
+
+    # POST /groups/{group_cn}/renew/
+    def renew_group_cn(self):
+        url = f'{self.base_url}/{self.group_cn}/renew/'
+        r = requests.post(url=url)
+        return json.dumps(r.json(), indent=4)
+
+    # POST /groups/{group_cn}/expire/
+    def expire_group_cn(self):
+        url = f'{self.base_url}/{self.group_cn}/expire/'
+        # days' value from 7 to 365
+        data = {"days": 7}
+        r = requests.post(url=url, json=data)
+        return json.dumps(r.json(), indent=4)
+
+    # POST /groups/{group_cn}/<attribute>/
+    def attr_group_cn(self):
+        attribute = 'member'  # supporting attributes listed in google doc
+        url = f'{self.base_url}/{self.group_cn}/{attribute}/'
+        data = {
+            "add": [
+                "uid=bjensen,ou=People,dc=umich,dc=edu",
+                "uid=vkg,ou=People,dc=umich,dc=edu"
+            ],
+            "delete": [
+                "uid=hable,ou=People,dc=umich,dc=edu"
+            ]}
+        r = requests.post(url=url, json=data)
         return json.dumps(r.json(), indent=4)
 
 
