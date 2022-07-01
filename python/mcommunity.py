@@ -38,6 +38,11 @@ class Authorize:
 
     @staticmethod
     def get_auth_header():
+        """
+        Get the authorization header needed for the app ID defined in a separate config file.
+        Note that the authorization header should look like {"Authorize": "Bearer {access_token}"}.
+        :return: The authorization header as a Python dictionary
+        """
         if Authorize._access_token is None:
             Authorize._obtain_access_token()
             return {"Authorization": f"Bearer {Authorize._access_token}"}
@@ -53,14 +58,22 @@ class People:
     base_url = api_url + '/people'
     uniqname = 'frnkwang'  # TODO: Will this need to be changed?
 
-    # GET /people/
     def get_people(self):
+        """
+        Sends a GET request to /people/. This fetches a list of a few people.
+        :return: a list of people. Each person is represented by a dictionary of attributes and values.
+        """
         url = f'{self.base_url}/'
         r = requests.get(url=url)
-        return json.dumps(r.json(), indent=4)
+        return r.json()
 
-    # POST /people/search/
-    def post_people_search(self):
+    def search(self):
+        """
+        Sends a POST request to /people/search/. This searches the directory according to criteria in the POST body.
+        See the body for an example of search criteria.
+        :return: a list of people matching the criteria.
+                 Each person is represented by a dictionary of attributes and values.
+        """
         url = f'{self.base_url}/search/'
 
         # searchType_options = ["start", "end", "contain", "exact"]'
@@ -73,39 +86,166 @@ class People:
 
         attributes = ["displayName"]
 
-        data = {"searchParts": searchParts,
+        body = {"searchParts": searchParts,
                 "numEntries": 3,
                 "logicalOperator": "AND",  # AND or OR
                 "attributes": attributes}
 
-        r = requests.post(url=url, json=data)
-        return json.dumps(r.json(), indent=4)
+        r = requests.post(url=url, json=body)
+        return r.json()
 
-    # GET /people/{id}/
-    def get_people_id(self):
+    def get_uniqname_details(self):
+        """
+        Sends a GET request to /people/<uniqname>/. This gets the details for <uniqname>.
+        :return: A dictionary of attributes for <uniqname>
+        """
         url = f'{self.base_url}/{self.uniqname}/'
         r = requests.get(url=url)
-        return json.dumps(r.json(), indent=4)
+        return r.json()
 
-    # PATCH /people/{id}/
-    def patch_people_id(self):
-        # TODO: do we need this example? Not sure if users could do this anyway
-        pass
-
-    # GET /people/{id}/name_coach/
-    def get_people_id_name_coach(self):
-        url = f'{self.base_url}/{self.uniqname}/name_coach/'
-        r = requests.get(url=url)
-        return json.dumps(r.json(), indent=4)
-
-    # GET /people/{id}/vcard/
-    # Requires authorization
-    def get_people_id_vcard(self):
-        # TODO: do we need this example? Current App ID auth token gives insufficient access rights
+    def get_uniqname_vcard(self):
+        """
+        Requires authorization.
+        Sends a GET request to /people/<uniqname>/vcard/. This gets the vCard for <uniqname>, or 404 if unavailable.
+        :return: A dictionary containing vCard information for <uniqname>
+        """
         url = f'{self.base_url}/{self.uniqname}/vcard/'
         auth_header = Authorize.get_auth_header()
         r = requests.get(url=url, headers=auth_header)
-        return json.dumps(r.json(), indent=4)
+        return r.json()
+
+    # GET /people/<uniqname>/name_coach/
+    def get_uniqname_name_coach(self):
+        """
+        Sends a GET request to /people/<uniqname>/name_coach/.
+        This gets the name coach information for <uniqname>, or 404 if unavailable.
+        :return: A dictionary containing name coach information for <uniqname>
+        """
+        url = f'{self.base_url}/{self.uniqname}/name_coach/'
+        r = requests.get(url=url)
+        return r.json()
+
+
+class Groups:
+    base_url = f'{api_url}/groups'
+    group_name = 'api-examples-group'
+
+    def get_group_details(self):
+        """
+        Sends a GET request to /groups/<groupname>/. This gets the details for the group <groupname>.
+        :return: A dictionary of attributes for <groupname>
+        """
+        url = f'{self.base_url}/{self.group_name}/'
+        auth_header = Authorize.get_auth_header()
+        r = requests.get(url=url, headers=auth_header)
+        return r.json()
+
+    def renew_group(self):
+        """
+        Sends a POST request to /groups/<groupname>/renew/.
+        This extends its expiration date to a year from today's date. It also un-expires the group if it is expired.
+        :return: None. The response is empty.
+        """
+        url = f'{self.base_url}/{self.group_name}/renew/'
+        auth_header = Authorize.get_auth_header()
+        r = requests.post(url=url, headers=auth_header)
+        assert (r.status_code == 200)
+        return None
+
+    def expire_group(self):
+        """
+        NOT CURRENTLY IMPLEMENTED # TODO: update this when released
+        Sends a POST request to /groups/<groupname>/expire/.
+        This expires ("soft deletes") a group. This is equivalent to trashing a group in the MCommunity web app.
+        The amount of days until permanent deletion can be specified in the post body. See below for example.
+        :return: None. The response is empty.
+        """
+        url = f'{self.base_url}/{self.group_name}/expire/'
+        auth_header = Authorize.get_auth_header()
+        r = requests.post(url=url, headers=auth_header,
+                          json={"days": 7})  # Number of days until permanent deletion
+        assert (r.status_code == 200)
+        return None
+
+    def create_group(self):
+        """
+        Sends a POST request to /groups/.
+        This creates a new group with details specified in the POST body. See below for example.
+        See documentation for full details on group attributes.
+        Note that the group name must not already exist. If it does exist, a 409 will be returned.
+        :return: None. The response is empty.
+        """
+        url = f'{self.base_url}/'
+        auth_header = Authorize.get_auth_header()
+
+        # These attributes are required; all others are optional
+        body = {
+            "cn": self.group_name,              # If this group cn already exists, a 409 will be returned
+            "umichGroupEmail": "this-is-fake",  # do not include @umich.edu. Also will return 409 if email exists
+            "owner": [  # TODO: Currently, app ids can't be the initial owner. Do we want to change this?
+                'uid=frnkwang,ou=people,dc=umich,dc=edu'
+            ],
+            "umichDescription": "My description"
+        }
+
+        r = requests.post(url=url, headers=auth_header, json=body)
+        assert(r.status_code == 201)
+        return None
+
+    def delete_group(self):
+        """
+        Sends a DELETE request to /groups/<groupname>/.
+        This deletes <groupname> PERMANENTLY. The app id must be an owner to delete the group.
+        :return: None. The response is empty.
+        """
+        url = f'{self.base_url}/{self.group_name}/'
+        auth_header = Authorize.get_auth_header()
+        r = requests.delete(url=url, headers=auth_header)
+        assert (r.status_code == 204)
+        return None
+
+    def replace_attributes(self):
+        """
+        Sends a PATCH request to /groups/<groupname>/.
+        This replaces the group's attributes with values in the PATCH body. The app id must be an owner.
+        Attributes can be removed by replacing it with a null value.
+        To modify multi-value attributes, use the multi-valued attribute endpoint instead.
+        :return: None. The response is empty.
+        """
+        url = f'{self.base_url}/{self.group_name}/'
+        auth_header = Authorize.get_auth_header()
+
+        body = {
+            "umichDescription": "This is a new description",
+            "umichAutoReply": None,
+        }
+
+        r = requests.patch(url=url, headers=auth_header, json=body)
+        assert(r.status_code == 200)
+        return None
+
+    def add_remove_multi_valued_attributes(self):
+        """
+        Sends a POST request to /groups/<groupname>/<attribute>/.
+        This will add or remove values from <attribute> in <groupname> according to the request body.
+        :return: None. The response is empty.
+        """
+        attribute = "owner"
+        url = f'{self.base_url}/{self.group_name}/{attribute}/'
+
+        body = {
+            "add": [
+                "uid=ethierba,ou=People,dc=umich,dc=edu"
+            ],
+            "delete": [
+                "uid=frnkwang,ou=People,dc=umich,dc=edu"
+            ],
+        }
+
+        auth_header = Authorize.get_auth_header()
+        r = requests.post(url=url, headers=auth_header, json=body)
+        assert(r.status_code == 200)
+        return None
 
 class Groups:
     base_url = f'{api_url}/groups'
