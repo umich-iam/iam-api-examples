@@ -1,0 +1,5 @@
+[apiexample]
+APPID_DN = cn=mcapi-<dept>-<system>,ou=apiusers,o=services
+APPID_PW = PlaceTheAppIDPasswordHereWithoutQuotes
+GROUP_NAME = GroupNameGoesHere
+API_URI = https://mcommunity-api.dsc.umich.edu
