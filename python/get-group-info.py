@@ -5,7 +5,6 @@ This is a basic usage example; you should add appropriate error handling
 
 import configparser
 import requests
-import json
 
 
 # Read sensitive data from a configuration file that is not stored in git
