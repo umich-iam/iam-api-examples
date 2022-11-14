@@ -18,7 +18,7 @@ group_name = config.get("GROUP_NAME")
 api_uri = config.get("API_URI")
 
 # Obtain an API access token and build the Authorization header
-token_uri = f"{api_uri}/api/token/"
+token_uri = f"{api_uri}/token/"
 token_body = {
      "username": api_app_id_dn,
      "password": api_app_id_password
